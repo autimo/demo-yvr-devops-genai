@@ -50,7 +50,7 @@ def lambda_handler(event, context):
             logger.info("Handling Command request")
             return command_handler(interaction)
         else:
-            logger.error(f"Received unhandled request type: {interaction["type"]}")
+            logger.error(f"Received unhandled request type: {interaction['type']}")
             return {
                 "statusCode": 400,
                 "headers": {"Content-Type": "application/json"},
