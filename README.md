@@ -44,6 +44,34 @@ To get started with this project, you'll need to have the following prerequisite
 
    Enter the required variables when prompted or create a `terraform.tfvars` file in the `terraform` directory with your specific values.
 
+## GitHub Secrets and Variables
+
+In order to successfully deploy and operate the components of this project, certain variables and secrets need to be configured in your GitHub repository's actions. Here's a breakdown of what's required:
+
+### Secrets
+
+- `DISCORD_APPLICATION_ID`: The application ID of your Discord bot. This is required for the bot to authenticate with Discord's API.
+- `DISCORD_BOT_TOKEN`: The token for your Discord bot. This is used to log in the bot to Discord.
+- `DISCORD_GUILD_ID`: The ID of the Discord server (guild) where the bot is added. This is necessary for registering bot commands to a specific server.
+- `OPENAI_API_KEY`: Your OpenAI API key, required for the Issue Creator Lambda function to generate GitHub issues.
+- `GH_PAT`: A GitHub Personal Access Token with the necessary permissions to create issues in the specified repository.
+
+### Variables
+
+These are configured as environment variables in the `.github/workflows/push.yaml` file and are used across different steps in the GitHub Actions workflow:
+
+- `TF_VERSION`: The version of Terraform to use. This project uses `1.7.5`.
+- `PYTHON_VERSION`: The version of Python to use for running scripts. This project uses `3.12`.
+
+Additionally, the following variables are used within the Terraform configuration and are prompted during the `terraform apply` command, but can also be predefined in a `terraform.tfvars` file:
+
+- `AWS_IAM_ROLE_ARN`: The ARN of the AWS IAM role that GitHub Actions will assume for deploying resources.
+- `AWS_REGION`: The AWS region where resources will be deployed.
+- `AWS_S3_BUCKET_NAME`: The name of the S3 bucket used by Terraform for state storage.
+- `AWS_DYNAMODB_TABLE_NAME`: The name of the DynamoDB table used by Terraform for state locking.
+
+Ensure these secrets and variables are correctly set up in your GitHub repository and AWS account for the smooth operation of the project.
+
 ## Contributing
 
 Contributions are welcome! If you have improvements or bug fixes, please feel free to fork the repository and submit a pull request.
