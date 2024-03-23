@@ -1,5 +1,8 @@
-name: Pull Request Workflow
-on: pull_request
+name: Push Workflow
+on:
+  push:
+    branches:
+      - main
 env:
   TF_VERSION: 1.7.5
 permissions:
@@ -19,7 +22,7 @@ jobs:
           DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
-  terraformPlan:
+  terraformApply:
     runs-on: ubuntu-latest
     steps:
       - name: Git clone the repository
@@ -49,8 +52,8 @@ jobs:
           terraform fmt -check
           terraform validate
         working-directory: ./terraform
-      - name: terraform plan
-        run: terraform plan
+      - name: terraform apply
+        run: terraform apply -auto-approve
         env:
           TF_VAR_discord_bot_repo_url: ${{ github.repository }}
           TF_VAR_discord_bot_public_key: ${{ secrets.DISCORD_BOT_PUBLIC_KEY }}
