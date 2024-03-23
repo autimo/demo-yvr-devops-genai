@@ -31,7 +31,7 @@ jobs:
           EOF
         working-directory: ./terraform
       - name: terraform init
-        run: terraform init
+        run: terraform init -backend-config=config.tfbackend
         working-directory: ./terraform
       - name: terraform fmt
         run: terraform fmt -check

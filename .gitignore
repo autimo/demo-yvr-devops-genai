@@ -5,6 +5,7 @@
 .terraform.lock.hcl
 *.tfvars
 *.tfbackend
+backend.hcl
 
 # Build Artifacts
 out/
