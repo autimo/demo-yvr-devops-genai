@@ -148,7 +148,7 @@ def create_github_issue(github_repo_url, title, body):
         headers = {"Authorization": f"token {github_access_token}"}
 
         # Get the org and repo from the github_repo_url
-        _, org, repo = github_repo_url.split("/")[-3:]
+        org, repo = github_repo_url.split("/")[-2:]
         issue_url = f"https://api.github.com/repos/{org}/{repo}/issues"
 
         # Create the GitHub issue
