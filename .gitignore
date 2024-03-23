@@ -1,0 +1,17 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+*.tfvars
+*.tfbackend
+
+# Build Artifacts
+out/
+
+# Python
+.venv
+
+# Environment Variables
+.env
+

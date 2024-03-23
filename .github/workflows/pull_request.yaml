@@ -1,0 +1,49 @@
+name: Pull Request Workflow
+on: pull_request
+env:
+  TF_VERSION: 1.7.5
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
+jobs:
+  terraformPlan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git clone the repository
+        uses: actions/checkout@v4
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ vars.AWS_IAM_ROLE_ARN }}
+          role-session-name: github-actions
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: configure terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - name: create terraform backend config
+        run: |
+          cat <<EOF >> config.tfbackend
+          bucket = "${{ vars.AWS_S3_BUCKET_NAME }}"
+          region = "${{ vars.AWS_REGION }}"
+          dynamodb_table = "${{ vars.AWS_DYNAMODB_TABLE_NAME }}"
+          key = "${{ github.repository }}/terraform.tfstate"
+          EOF
+        working-directory: ./terraform
+      - name: terraform init
+        run: terraform init
+        working-directory: ./terraform
+      - name: terraform fmt
+        run: terraform fmt -check
+        working-directory: ./terraform
+      - name: terraform validate
+        run: terraform validate
+        working-directory: ./terraform
+      - name: terraform plan
+        run: terraform plan
+        env:
+          TF_VAR_discord_bot_repo_url: ${{ github.repository }}
+          TF_VAR_discord_bot_public_key: ${{ secrets.DISCORD_BOT_PUBLIC_KEY }}
+          TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_github_access_token: ${{ secrets.GITHUB_PAT }}
+        working-directory: ./terraform
