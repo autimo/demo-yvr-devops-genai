@@ -5,6 +5,7 @@ on:
       - main
 env:
   TF_VERSION: 1.7.5
+  PYTHON_VERSION: 3.12
 permissions:
   id-token: write # This is required for requesting the JWT
   contents: read # This is required for actions/checkout
@@ -27,6 +28,10 @@ jobs:
     steps:
       - name: Git clone the repository
         uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
