@@ -6,19 +6,6 @@ permissions:
   id-token: write # This is required for requesting the JWT
   contents: read # This is required for actions/checkout
 jobs:
-  registerDiscordBotCommands:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Git clone the repository
-        uses: actions/checkout@v4
-      - name: install requirements
-        run: pip install -r scripts/requirements.txt
-      - name: register commands
-        run: python scripts/discord_bot_register_commands.py
-        env:
-          DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
-          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
   terraformPlan:
     runs-on: ubuntu-latest
     steps:
