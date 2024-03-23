@@ -12,13 +12,13 @@ jobs:
       - name: Git clone the repository
         uses: actions/checkout@v4
       - name: configure aws credentials
-        uses: aws-actions/configure-aws-credentials@v3
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_IAM_ROLE_ARN }}
           role-session-name: github-actions
           aws-region: ${{ vars.AWS_REGION }}
       - name: configure terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
       - name: create terraform backend config
