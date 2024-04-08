@@ -77,7 +77,7 @@ def command_handler(interaction):
             "body": json.dumps({"type": 4, "data": {"content": "Hello, YVR DevOps!"}}),
         }
     elif command == "hifive":
-        logger.info("Responding to 'hifive' command")
+        logger.ino("Responding to 'hifive' command")
         return {
             "statusCode": 200,
             "headers": {"Content-Type": "application/json"},
