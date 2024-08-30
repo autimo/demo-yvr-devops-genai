@@ -1,7 +1,7 @@
-variable "discord_bot_repo_url" {
-  description = "The URL of the GitHub repository containing the source code for the Discord bot"
+variable "example_lambda_git_repo_url" {
+  description = "The URL of the GitHub repository containing the source code for the Example Lambda"
   type        = string
-  default     = "https://github.com/autimo/demo-yvr-devops-genai"
+  default     = "https://github.com/autimo/aws-genai-error-reporting"
 }
 
 variable "openai_api_key" {
@@ -17,9 +17,3 @@ variable "github_access_token" {
   sensitive   = true
   default     = "ghp_1234567890"
 }
-
-variable "discord_bot_public_key" {
-  description = "The public key for the Discord bot"
-  type        = string
-}
-

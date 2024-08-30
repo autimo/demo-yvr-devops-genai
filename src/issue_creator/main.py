@@ -9,7 +9,7 @@ import zipfile
 import boto3
 import instructor
 import requests
-from openai import OpenAI
+from anthropic import AnthropicBedrock
 from pydantic import BaseModel
 
 logger = logging.getLogger()
@@ -47,7 +47,7 @@ def lambda_handler(event, context):
 
     error_logs = [event["message"] for event in log_events]
 
-    # Prepare the data for OpenAI API
+    # Prepare the data for Anthropic API
     prompt = f"""
         Given the following Lambda code and error logs, write a GitHub issue title and body in markdown format.
         The body should be a detailed explanation of the issue and the solution.
@@ -62,20 +62,22 @@ def lambda_handler(event, context):
         {error_logs}
         """
 
-    # Get the OpenAI API key from SSM Parameter Store
+    # Get the Anthropic API key from SSM Parameter Store
     ssm = boto3.client("ssm")
-    openai_key_ssm_param = os.environ.get("OPENAI_API_KEY_SSM_PARAM")
-    OPENAI_API_KEY = ssm.get_parameter(Name=openai_key_ssm_param, WithDecryption=True)[
-        "Parameter"
-    ]["Value"]
+    anthropic_key_ssm_param = os.environ.get("ANTHROPIC_API_KEY_SSM_PARAM")
+    ANTHROPIC_API_KEY = ssm.get_parameter(
+        Name=anthropic_key_ssm_param, WithDecryption=True
+    )["Parameter"]["Value"]
 
-    # Initialize the OpenAI client
-    openai_client = instructor.patch(OpenAI(api_key=OPENAI_API_KEY))
+    # Initialize the Anthropic client
+    anthropic_client = instructor.from_anthropic(
+        AnthropicBedrock(api_key=ANTHROPIC_API_KEY)
+    )
 
-    # Call the OpenAI API to get the suggested solution
-    github_issue = openai_client.chat.completions.create(
-        model="gpt-4-turbo-preview",
-        temperature=0.5,
+    # Call the Anthropic API to get the suggested solution
+    github_issue = anthropic_client.messages.create(
+        model="anthropic.claude-3-5-sonnet-20240620-v1:0",
+        max_tokens=1024,
         messages=[
             {"role": "system", "content": "You are an expert programmer."},
             {"role": "user", "content": prompt},
@@ -112,7 +114,7 @@ def get_lambda_code_from_function_name(lambda_name):
                         f"# Filename: {filename}\n\n"
                         + f.read().decode("utf-8")
                         + "\n\n"
-                        + "#" * 40
+                        + f"# End of file: {filename}"
                         + "\n\n"
                     )
         return lambda_code

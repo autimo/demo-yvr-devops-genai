@@ -3,7 +3,6 @@ on:
   pull_request:
     paths:
       - ".github/workflows/**"
-      - "scripts/**"
       - "src/**"
       - "terraform/**"
 env:
@@ -50,8 +49,7 @@ jobs:
       - name: terraform plan
         run: terraform plan
         env:
-          TF_VAR_discord_bot_repo_url: ${{ github.repository }}
-          TF_VAR_discord_bot_public_key: ${{ secrets.DISCORD_BOT_PUBLIC_KEY }}
+          TF_VAR_example_lambda_git_repo_url: ${{ github.repository }}
           TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
           TF_VAR_github_access_token: ${{ secrets.GH_PAT }}
         working-directory: ./terraform

@@ -1,4 +1,4 @@
-# Demo YVR DevOps GenAI Project
+# AWS Error Reporting with GenAI
 
 Welcome to the Demo YVR DevOps GenAI Project!
 
@@ -81,3 +81,14 @@ Contributions are welcome! If you have improvements or bug fixes, please feel fr
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+## TODO
+
+- [ ] Read tag from lambda to decide if logs should be redacted from the issue
+- [ ] Optionally get Github token SSM parameter from tag
+- [ ] Instead of function name report the function arn in the issue. This provides more info
+- [ ] Add timestamp of the event to the issue
+- [ ] Add link to the cloudwatch log to the issue
+- [ ] Store event metadata in dynamodb
+- [ ] Add ECS support
+- [ ] Custom prompt support for the issue creator
