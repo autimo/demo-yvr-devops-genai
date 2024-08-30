@@ -17,14 +17,6 @@ locals {
   runtime = "python3.12"
 }
 
-# Create a secure string parameter for the OpenAI API key
-resource "aws_ssm_parameter" "openai_api_key" {
-  name        = "openai-api-key"
-  description = "OpenAI API key for the Issue Creator Lambda function"
-  type        = "SecureString"
-  value       = var.openai_api_key
-}
-
 # Create a secure string parameter for the GitHub access token
 resource "aws_ssm_parameter" "github_access_token" {
   name        = "github-access-token"
@@ -33,31 +25,6 @@ resource "aws_ssm_parameter" "github_access_token" {
   value       = var.github_access_token
 }
 
-# Create a Lambda layer for the Discord bot dependencies
-resource "null_resource" "discord_bot_dependencies" {
-  triggers = {
-    timestamp = timestamp()
-  }
-
-  provisioner "local-exec" {
-    command = "mkdir -p ${path.module}/out/discord_bot_dependencies/python && pip3 install --target ${path.module}/out/discord_bot_dependencies/python -r ${path.module}/../src/discord_bot/requirements.txt"
-  }
-}
-
-data "archive_file" "discord_bot_dependencies" {
-  type        = "zip"
-  source_dir  = "${path.module}/out/discord_bot_dependencies"
-  output_path = "${path.module}/out/discord_bot_dependencies.zip"
-
-  depends_on = [null_resource.discord_bot_dependencies]
-}
-
-resource "aws_lambda_layer_version" "discord_bot_dependencies" {
-  filename            = data.archive_file.discord_bot_dependencies.output_path
-  layer_name          = "discord-bot-dependencies"
-  compatible_runtimes = [local.runtime]
-  source_code_hash    = data.archive_file.discord_bot_dependencies.output_base64sha256
-}
 
 # Create a Lambda layer for the Issue Creator dependencies
 resource "null_resource" "issue_creator_dependencies" {
@@ -85,73 +52,67 @@ resource "aws_lambda_layer_version" "issue_creator_dependencies" {
   source_code_hash    = data.archive_file.issue_creator_dependencies.output_base64sha256
 }
 
-# Create a Lambda function for the Discord bot
-data "archive_file" "discord_bot" {
+# Create a Lambda function for the Example Lambda
+data "archive_file" "example_lambda" {
   type        = "zip"
-  source_dir  = "${path.module}/../src/discord_bot"
-  output_path = "${path.module}/out/discord_bot.zip"
+  source_dir  = "${path.module}/../src/example_lambda"
+  output_path = "${path.module}/out/example_lambda.zip"
 }
 
-resource "aws_lambda_function" "discord_bot" {
-  filename         = data.archive_file.discord_bot.output_path
-  function_name    = "discord-bot"
+resource "aws_lambda_function" "example_lambda" {
+  filename         = data.archive_file.example_lambda.output_path
+  function_name    = "example-lambda"
   role             = aws_iam_role.lambda_exec.arn
   handler          = "main.lambda_handler"
   runtime          = local.runtime
-  source_code_hash = filebase64sha256(data.archive_file.discord_bot.output_path)
-  layers           = [aws_lambda_layer_version.discord_bot_dependencies.arn]
-
-  environment {
-    variables = {
-      DISCORD_PUBLIC_KEY = var.discord_bot_public_key
-    }
-  }
+  source_code_hash = filebase64sha256(data.archive_file.example_lambda.output_path)
 
   tags = {
     # This is used by the issue creator lambda to create issues on the repo
-    "github-repo" = var.discord_bot_repo_url
+    github-repo         = var.example_lambda_git_repo_url
+    create_error_report = "ERROR"
   }
 }
 
-# Create the API Gateway to trigger the Discord bot Lambda
-resource "aws_api_gateway_rest_api" "discord_bot_api" {
-  name        = "DiscordBotAPI"
-  description = "API Gateway for the Discord Bot Lambda Function"
+# Create the API Gateway to trigger the Example Lambda
+resource "aws_api_gateway_rest_api" "example_lambda_api" {
+  name        = "ExampleLambdaAPI"
+  description = "API Gateway for the Example Lambda Function"
 }
 
-resource "aws_api_gateway_resource" "discord_bot_resource" {
-  rest_api_id = aws_api_gateway_rest_api.discord_bot_api.id
-  parent_id   = aws_api_gateway_rest_api.discord_bot_api.root_resource_id
-  path_part   = "interactions"
+resource "aws_api_gateway_resource" "example_lambda_resource" {
+  rest_api_id = aws_api_gateway_rest_api.example_lambda_api.id
+  parent_id   = aws_api_gateway_rest_api.example_lambda_api.root_resource_id
+  path_part   = "hello"
 }
 
-resource "aws_api_gateway_method" "discord_bot_method" {
-  rest_api_id   = aws_api_gateway_rest_api.discord_bot_api.id
-  resource_id   = aws_api_gateway_resource.discord_bot_resource.id
+resource "aws_api_gateway_method" "example_lambda_method" {
+  rest_api_id   = aws_api_gateway_rest_api.example_lambda_api.id
+  resource_id   = aws_api_gateway_resource.example_lambda_resource.id
   http_method   = "POST"
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "discord_bot_integration" {
-  rest_api_id = aws_api_gateway_rest_api.discord_bot_api.id
-  resource_id = aws_api_gateway_resource.discord_bot_resource.id
-  http_method = aws_api_gateway_method.discord_bot_method.http_method
+resource "aws_api_gateway_integration" "example_lambda_integration" {
+  rest_api_id = aws_api_gateway_rest_api.example_lambda_api.id
+  resource_id = aws_api_gateway_resource.example_lambda_resource.id
+  http_method = aws_api_gateway_method.example_lambda_method.http_method
 
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
-  uri                     = aws_lambda_function.discord_bot.invoke_arn
+  uri                     = aws_lambda_function.example_lambda.invoke_arn
 }
 
-resource "aws_api_gateway_deployment" "discord_bot_api_deployment" {
-  rest_api_id = aws_api_gateway_rest_api.discord_bot_api.id
+resource "aws_api_gateway_deployment" "example_lambda_api_deployment" {
+  rest_api_id = aws_api_gateway_rest_api.example_lambda_api.id
 
   # Ensure the deployment gets updated when the API changes
   triggers = {
     redeployment = sha1(jsonencode({
-      rest_api    = aws_api_gateway_rest_api.discord_bot_api.body,
-      resource    = aws_api_gateway_resource.discord_bot_resource.path_part,
-      method      = aws_api_gateway_method.discord_bot_method.http_method,
-      integration = aws_api_gateway_integration.discord_bot_integration.uri,
+      rest_api    = aws_api_gateway_rest_api.example_lambda_api.body,
+      resource    = aws_api_gateway_resource.example_lambda_resource.path_part,
+      method      = aws_api_gateway_method.example_lambda_method.http_method,
+      integration = aws_api_gateway_integration.example_lambda_integration.uri,
     }))
   }
 
@@ -160,19 +121,19 @@ resource "aws_api_gateway_deployment" "discord_bot_api_deployment" {
   }
 }
 
-resource "aws_api_gateway_stage" "discord_bot_api_stage" {
-  deployment_id = aws_api_gateway_deployment.discord_bot_api_deployment.id
-  rest_api_id   = aws_api_gateway_rest_api.discord_bot_api.id
+resource "aws_api_gateway_stage" "example_lambda_api_stage" {
+  deployment_id = aws_api_gateway_deployment.example_lambda_api_deployment.id
+  rest_api_id   = aws_api_gateway_rest_api.example_lambda_api.id
   stage_name    = "api"
 }
 
 
-resource "aws_lambda_permission" "discord_bot_api" {
+resource "aws_lambda_permission" "example_lambda_api" {
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.discord_bot.function_name
+  function_name = aws_lambda_function.example_lambda.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.discord_bot_api.execution_arn}/*/*"
+  source_arn    = "${aws_api_gateway_rest_api.example_lambda_api.execution_arn}/*/*"
 }
 
 # Create the Issue Creator Lambda function
@@ -194,7 +155,6 @@ resource "aws_lambda_function" "issue_creator" {
 
   environment {
     variables = {
-      OPENAI_API_KEY_SSM_PARAM      = aws_ssm_parameter.openai_api_key.name
       GITHUB_ACCESS_TOKEN_SSM_PARAM = aws_ssm_parameter.github_access_token.name
     }
   }
@@ -248,9 +208,9 @@ resource "aws_iam_role_policy_attachment" "lambda_get_function_policy_attachment
   policy_arn = aws_iam_policy.lambda_get_function_policy.arn
 }
 
-# Create CloudWatch Log Group for the Discord bot
-resource "aws_cloudwatch_log_group" "discord_bot_logs" {
-  name              = "/aws/lambda/discord-bot"
+# Create CloudWatch Log Group for the Example Lambda
+resource "aws_cloudwatch_log_group" "example_lambda_logs" {
+  name              = "/aws/lambda/example-lambda"
   retention_in_days = 14
 }
 
@@ -260,23 +220,23 @@ resource "aws_lambda_permission" "cloudwatch_to_issue_creator" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.issue_creator.function_name
   principal     = "logs.amazonaws.com"
-  source_arn    = "${aws_cloudwatch_log_group.discord_bot_logs.arn}:*"
+  source_arn    = "${aws_cloudwatch_log_group.example_lambda_logs.arn}:*"
 }
 
 # Create CloudWatch Log Group subscription filter
 resource "aws_cloudwatch_log_subscription_filter" "issue_creator_trigger" {
   name            = "issue-creator-trigger"
-  log_group_name  = aws_cloudwatch_log_group.discord_bot_logs.name
+  log_group_name  = aws_cloudwatch_log_group.example_lambda_logs.name
   filter_pattern  = "ERROR"
   destination_arn = aws_lambda_function.issue_creator.arn
 
   depends_on = [aws_lambda_permission.cloudwatch_to_issue_creator]
 }
 
-# Grant permission to the Issue Creator Lambda to read the OpenAI API key and GitHub access token from SSM Parameter Store
+# Grant permission to the Issue Creator Lambda to read the GitHub access token from SSM Parameter Store
 resource "aws_iam_policy" "issue_creator_read_ssm_policy" {
   name        = "IssueCreatorReadSSMPolicy"
-  description = "Allows the Issue Creator Lambda function to read the OpenAI API key and GitHub access token from SSM Parameter Store"
+  description = "Allows the Issue Creator Lambda function to read the GitHub access token from SSM Parameter Store"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -286,7 +246,6 @@ resource "aws_iam_policy" "issue_creator_read_ssm_policy" {
         ]
         Effect = "Allow"
         Resource = [
-          aws_ssm_parameter.openai_api_key.arn,
           aws_ssm_parameter.github_access_token.arn
         ]
       }
@@ -297,4 +256,27 @@ resource "aws_iam_policy" "issue_creator_read_ssm_policy" {
 resource "aws_iam_role_policy_attachment" "issue_creator_read_ssm_policy_attachment" {
   role       = aws_iam_role.lambda_exec.name
   policy_arn = aws_iam_policy.issue_creator_read_ssm_policy.arn
+}
+
+# Grant permission to the Issue Creator Lambda to invoke Bedrock
+resource "aws_iam_policy" "issue_creator_bedrock_policy" {
+  name        = "IssueCreatorBedrockPolicy"
+  description = "Allows the Issue Creator Lambda function to invoke Bedrock"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "bedrock:InvokeModel"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "issue_creator_bedrock_policy_attachment" {
+  role       = aws_iam_role.lambda_exec.name
+  policy_arn = aws_iam_policy.issue_creator_bedrock_policy.arn
 }
