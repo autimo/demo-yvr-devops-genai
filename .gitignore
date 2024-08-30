@@ -12,6 +12,7 @@ out/
 
 # Python
 .venv
+venv/
 
 # Environment Variables
 .env
