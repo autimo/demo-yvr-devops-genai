@@ -17,14 +17,6 @@ locals {
   runtime = "python3.12"
 }
 
-# Create a secure string parameter for the OpenAI API key
-resource "aws_ssm_parameter" "openai_api_key" {
-  name        = "openai-api-key"
-  description = "OpenAI API key for the Issue Creator Lambda function"
-  type        = "SecureString"
-  value       = var.openai_api_key
-}
-
 # Create a secure string parameter for the GitHub access token
 resource "aws_ssm_parameter" "github_access_token" {
   name        = "github-access-token"
@@ -163,7 +155,6 @@ resource "aws_lambda_function" "issue_creator" {
 
   environment {
     variables = {
-      OPENAI_API_KEY_SSM_PARAM      = aws_ssm_parameter.openai_api_key.name
       GITHUB_ACCESS_TOKEN_SSM_PARAM = aws_ssm_parameter.github_access_token.name
     }
   }
@@ -242,10 +233,10 @@ resource "aws_cloudwatch_log_subscription_filter" "issue_creator_trigger" {
   depends_on = [aws_lambda_permission.cloudwatch_to_issue_creator]
 }
 
-# Grant permission to the Issue Creator Lambda to read the OpenAI API key and GitHub access token from SSM Parameter Store
+# Grant permission to the Issue Creator Lambda to read the GitHub access token from SSM Parameter Store
 resource "aws_iam_policy" "issue_creator_read_ssm_policy" {
   name        = "IssueCreatorReadSSMPolicy"
-  description = "Allows the Issue Creator Lambda function to read the OpenAI API key and GitHub access token from SSM Parameter Store"
+  description = "Allows the Issue Creator Lambda function to read the GitHub access token from SSM Parameter Store"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -255,7 +246,6 @@ resource "aws_iam_policy" "issue_creator_read_ssm_policy" {
         ]
         Effect = "Allow"
         Resource = [
-          aws_ssm_parameter.openai_api_key.arn,
           aws_ssm_parameter.github_access_token.arn
         ]
       }
@@ -266,4 +256,27 @@ resource "aws_iam_policy" "issue_creator_read_ssm_policy" {
 resource "aws_iam_role_policy_attachment" "issue_creator_read_ssm_policy_attachment" {
   role       = aws_iam_role.lambda_exec.name
   policy_arn = aws_iam_policy.issue_creator_read_ssm_policy.arn
+}
+
+# Grant permission to the Issue Creator Lambda to invoke Bedrock
+resource "aws_iam_policy" "issue_creator_bedrock_policy" {
+  name        = "IssueCreatorBedrockPolicy"
+  description = "Allows the Issue Creator Lambda function to invoke Bedrock"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "bedrock:InvokeModel"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "issue_creator_bedrock_policy_attachment" {
+  role       = aws_iam_role.lambda_exec.name
+  policy_arn = aws_iam_policy.issue_creator_bedrock_policy.arn
 }

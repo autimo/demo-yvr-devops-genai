@@ -62,16 +62,11 @@ def lambda_handler(event, context):
         {error_logs}
         """
 
-    # Get the Anthropic API key from SSM Parameter Store
-    ssm = boto3.client("ssm")
-    anthropic_key_ssm_param = os.environ.get("ANTHROPIC_API_KEY_SSM_PARAM")
-    ANTHROPIC_API_KEY = ssm.get_parameter(
-        Name=anthropic_key_ssm_param, WithDecryption=True
-    )["Parameter"]["Value"]
-
-    # Initialize the Anthropic client
+    # Initialize the Anthropic client using IAM authentication
     anthropic_client = instructor.from_anthropic(
-        AnthropicBedrock(api_key=ANTHROPIC_API_KEY)
+        AnthropicBedrock(
+            aws_region="us-west-2"  # Specify the correct AWS region
+        )
     )
 
     # Call the Anthropic API to get the suggested solution

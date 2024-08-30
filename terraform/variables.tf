@@ -4,13 +4,6 @@ variable "example_lambda_git_repo_url" {
   default     = "https://github.com/autimo/aws-genai-error-reporting"
 }
 
-variable "openai_api_key" {
-  description = "The OpenAI API key"
-  type        = string
-  sensitive   = true
-  default     = "sk-YOUR_OPENAI_API_KEY"
-}
-
 variable "github_access_token" {
   description = "The GitHub access token"
   type        = string
