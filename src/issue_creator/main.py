@@ -10,7 +10,7 @@ import boto3
 import instructor
 import requests
 from anthropic import AnthropicBedrock
-from pydantic import BaseModel
+from pydantic import BaseModel, List
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -19,6 +19,7 @@ logger.setLevel(logging.INFO)
 class GitHubIssue(BaseModel):
     title: str
     body: str
+    labels: List[str]
 
 
 def lambda_handler(event, context):
@@ -49,17 +50,37 @@ def lambda_handler(event, context):
 
     # Prepare the data for Anthropic API
     prompt = f"""
-        Given the following Lambda code and error logs, write a GitHub issue title and body in markdown format.
-        The body should be a detailed explanation of the issue and the solution.
+        Given the following AWS Lambda function details and error logs, create a comprehensive GitHub issue in markdown format. Include both a concise title and a detailed body.
 
-        Lambda name:
-        {lambda_name}
+        Lambda Function Name: {lambda_name}
 
-        Lambda code:
+        Lambda Function Code:
+        ```python
         {lambda_code}
-        
-        Error logs:
+        ```
+
+        Error Logs:
+        ```
         {error_logs}
+        ```
+
+        Please structure the GitHub issue as follows:
+
+        1. Title: A brief, descriptive summary of the issue (max 100 characters)
+
+        2. Body:
+        - **Problem Description**: Clearly explain the issue, including any error messages or unexpected behavior.
+        - **Expected Behavior**: Describe what the Lambda function should do when working correctly.
+        - **Actual Behavior**: Detail what's currently happening, including any error messages or unexpected output.
+        - **Error Analysis**: Provide insights into what might be causing the error based on the logs and code.
+        - **Potential Solutions**: Suggest one or more approaches to fix the issue.
+        - **Additional Context**: Include any other relevant information (e.g., AWS region, runtime version, dependencies).
+        - **Steps to Reproduce**: If applicable, list the steps to recreate the issue.
+        - **Code Snippet**: If the error is in a specific part of the code, include that snippet here.
+
+        3. Labels: Suggest appropriate labels for the issue (e.g., bug, enhancement, documentation).
+
+        Please ensure the response is well-formatted in markdown and ready to be pasted directly into a GitHub issue.
         """
 
     # Initialize the Anthropic client using IAM authentication
@@ -85,7 +106,9 @@ def lambda_handler(event, context):
     # Create the GitHub issue
     github_repo_url = get_lambda_github_repo_url(lambda_name)
     if github_repo_url:
-        create_github_issue(github_repo_url, github_issue.title, github_issue.body)
+        create_github_issue(
+            github_repo_url, github_issue.title, github_issue.body, github_issue.labels
+        )
 
 
 def get_lambda_code_from_function_name(lambda_name):
@@ -133,7 +156,7 @@ def get_lambda_github_repo_url(lambda_name):
         return None
 
 
-def create_github_issue(github_repo_url, title, body):
+def create_github_issue(github_repo_url, title, body, labels):
     try:
         ssm = boto3.client("ssm")
 
@@ -149,7 +172,7 @@ def create_github_issue(github_repo_url, title, body):
         issue_url = f"https://api.github.com/repos/{org}/{repo}/issues"
 
         # Create the GitHub issue
-        data = {"title": title, "body": body, "labels": ["bug"]}
+        data = {"title": title, "body": body, "labels": labels}
         response = requests.post(issue_url, json=data, headers=headers)
         if response.status_code != 201:
             raise Exception(f"Failed to create GitHub issue: {response.content}")
