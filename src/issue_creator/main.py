@@ -5,12 +5,13 @@ import json
 import logging
 import os
 import zipfile
+from typing import List
 
 import boto3
 import instructor
 import requests
 from anthropic import AnthropicBedrock
-from pydantic import BaseModel, List
+from pydantic import BaseModel
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
