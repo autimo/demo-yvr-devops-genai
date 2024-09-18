@@ -67,6 +67,53 @@ Additionally, the following variables are used within the Terraform configuratio
 
 Ensure these secrets and variables are correctly set up in your GitHub repository and AWS account for the smooth operation of the project.
 
+## Automated Subscription Filter
+
+This project includes an automated subscription filter feature that dynamically creates or updates CloudWatch Log subscription filters for Lambda functions. This allows for automatic error reporting based on specific tags applied to the Lambda functions.
+
+### How it works
+
+1. A Lambda function (`create_sub_filters`) listens to CloudTrail events for Lambda function creation, deletion, and tagging operations.
+2. When a Lambda function is created or tagged with a specific key, a subscription filter is automatically created or updated for that function's log group.
+3. If a Lambda function is deleted or the specific tag is removed, the corresponding subscription filter is removed.
+
+### Tagging Features
+
+You can control the behavior of the error reporting system by applying specific tags to your Lambda functions:
+
+1. **Enable Error Reporting**
+   - Tag Key: `create_error_reports`
+   - Tag Value: The filter pattern to use (e.g., `"ERROR"`, `"WARN"`, etc.)
+   - Description: Enables error reporting for the Lambda function using the specified filter pattern.
+   - Example: `create_error_reports = "ERROR"`
+
+2. **Custom Filter Pattern**
+   - If you don't specify a value for the `create_error_reports` tag, it will use the default filter pattern defined in the `DEFAULT_FILTER_PATTERN` environment variable (default is `"ERROR"`).
+
+3. **GitHub Repository URL**
+   - Tag Key: `github-repo`
+   - Tag Value: The URL of the GitHub repository associated with the Lambda function.
+   - Description: Specifies the GitHub repository where issues should be created for this Lambda function.
+   - Example: `github-repo = "https://github.com/username/repo-name"`
+
+### Environment Variables
+
+The `create_sub_filters` Lambda function uses the following environment variables:
+
+- `DESTINATION_ARN`: The ARN of the destination Lambda function (Issue Creator) for the subscription filter.
+- `SUBSCRIPTION_FILTER_PREFIX`: Prefix for the subscription filter names (default: "ErrorSubscription").
+- `FILTER_PATTERN`: Default filter pattern to use if not specified in the tag (default: "ERROR").
+- `TAG_KEY`: The tag key to look for when creating subscription filters (default: "create_error_reports").
+
+### Usage
+
+To enable automated error reporting for your Lambda function:
+
+1. Add the `create_error_reports` tag to your Lambda function with the desired filter pattern as the value.
+2. Add the `github-repo` tag with the URL of the associated GitHub repository.
+
+The system will automatically create a subscription filter for the Lambda function's log group, and any matching log events will trigger the Issue Creator Lambda to create GitHub issues.
+
 ## Contributing
 
 Contributions are welcome! If you have improvements or bug fixes, please feel free to fork the repository and submit a pull request.
