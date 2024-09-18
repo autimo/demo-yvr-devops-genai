@@ -4,6 +4,10 @@ Welcome to the Demo YVR DevOps GenAI Project!
 
 This repository contains the source code for an Issue Creator Lambda function, designed to showcase the integration of AWS services, Terraform infrastructure as code, with an innovative approach to automated GitHub issue creation using AWS Bedrock generative AI.
 
+## Join Our Discord
+
+[Autimo's Between Two Clouds](https://discord.gg/6cD9utuW9k)
+
 ## Overview
 
 The main component of this project is:
