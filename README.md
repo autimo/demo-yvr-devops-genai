@@ -71,11 +71,13 @@ Additionally, the following variables are used within the Terraform configuratio
 
 Ensure these secrets and variables are correctly set up in your GitHub repository and AWS account for the smooth operation of the project.
 
-## Automated Subscription Filter
+## Automated Subscription Filter (not currently deployed)
 
-This project includes an automated subscription filter feature that dynamically creates or updates CloudWatch Log subscription filters for Lambda functions. This allows for automatic error reporting based on specific tags applied to the Lambda functions.
+> **Status:** The `create_sub_filters` Lambda source below exists in this repository but is **not deployed** by the Terraform in `terraform/`. There is no `aws_lambda_function` resource, EventBridge/CloudTrail trigger, or IAM policy for it, and the invoke permission on `issue-creator` (see `terraform/main.tf`) is scoped only to the static example-Lambda log group. Tagging a function with `create_error_reports` today has no effect — the only pipeline actually running is the static subscription filter wired directly to `example_lambda` in Terraform. Treat the description below as a design for a feature that has not been built, not as documentation of current behavior.
 
-### How it works
+This project includes design source for an automated subscription filter feature that would dynamically create or update CloudWatch Log subscription filters for Lambda functions, enabling automatic error reporting based on specific tags. It is not part of the deployed infrastructure.
+
+### How it would work
 
 1. A Lambda function (`create_sub_filters`) listens to CloudTrail events for Lambda function creation, deletion, and tagging operations.
 2. When a Lambda function is created or tagged with a specific key, a subscription filter is automatically created or updated for that function's log group.

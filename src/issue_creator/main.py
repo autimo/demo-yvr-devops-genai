@@ -95,8 +95,8 @@ def lambda_handler(event, context):
     github_issue = anthropic_client.messages.create(
         model="anthropic.claude-3-5-sonnet-20240620-v1:0",
         max_tokens=1024,
+        system="You are an expert programmer.",
         messages=[
-            {"role": "system", "content": "You are an expert programmer."},
             {"role": "user", "content": prompt},
         ],
         response_model=GitHubIssue,
